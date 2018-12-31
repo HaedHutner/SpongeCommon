@@ -34,9 +34,7 @@ import net.minecraft.server.management.PlayerList;
 import net.minecraft.server.management.PlayerProfileCache;
 import net.minecraft.server.management.UserListBans;
 import net.minecraft.server.management.UserListEntry;
-import net.minecraft.server.management.UserListEntryBan;
 import net.minecraft.server.management.UserListWhitelist;
-import net.minecraft.server.management.UserListWhitelistEntry;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.storage.SaveHandler;
 import org.spongepowered.api.Sponge;
@@ -44,13 +42,16 @@ import org.spongepowered.api.entity.living.player.User;
 import org.spongepowered.api.profile.ProfileNotFoundException;
 import org.spongepowered.common.SpongeImpl;
 import org.spongepowered.common.entity.player.SpongeUser;
+import org.spongepowered.common.interfaces.IMixinSaveHandler;
 import org.spongepowered.common.interfaces.entity.player.IMixinEntityPlayerMP;
 import org.spongepowered.common.world.WorldManager;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
@@ -75,6 +76,7 @@ class UserDiscoverer {
 
     @Nullable private static WatchService filesystemWatchService = null;
     @Nullable private static WatchKey watchKey = null;
+    private final static Object lockingObject = new Object();
 
     private static final Cache<UUID, User> userCache = CacheBuilder.newBuilder()
             .expireAfterAccess(1, TimeUnit.DAYS)
@@ -117,6 +119,7 @@ class UserDiscoverer {
      * @param profile The user's profile
      * @return The user data, or null if not found
      */
+    @Nullable
     static User findByProfile(org.spongepowered.api.profile.GameProfile profile) {
         UUID uniqueId = profile.getUniqueId();
         User user = userCache.getIfPresent(uniqueId);
@@ -144,6 +147,7 @@ class UserDiscoverer {
         return user;
     }
 
+    @Nullable
     static User findByUsername(String username) {
         User user = userByNameCache.getIfPresent(username);
         if (user != null) {
@@ -175,81 +179,100 @@ class UserDiscoverer {
         return UserDiscoverer.findByProfile(profile);
     }
 
-    static synchronized Collection<org.spongepowered.api.profile.GameProfile> getAllProfiles() {
-        Preconditions.checkState(Sponge.isServerAvailable(), "Server is not available!");
-        final Map<UUID, org.spongepowered.api.profile.GameProfile> profiles = new HashMap<>();
-
-        // Add all cached profiles
-        userCache.asMap().values().stream().map(User::getProfile).forEach(p -> profiles.put(p.getUniqueId(), p));
-
-        // Add all known profiles from the data files
-        SaveHandler saveHandler = (SaveHandler) WorldManager.getWorldByDimensionId(0).get().getSaveHandler();
-        final PlayerProfileCache profileCache = SpongeImpl.getServer().getPlayerProfileCache();
-
-        if (filesystemWatchService == null || watchKey == null) {
-            String[] uuids = saveHandler.getAvailablePlayerDat();
-            for (String playerUuid : uuids) {
-
-                // If the filename contains a period, we can fail fast. Vanilla code fixes the Strings that have ".dat" to strip that out
-                // before passing that back in getAvailablePlayerDat. It doesn't remove non ".dat" filenames from the list.
-                if (playerUuid.contains(".")) {
-                    continue;
-                }
-
-                // At this point, we have a filename who has no extension. This doesn't mean it is actually a UUID. We trap the exception and ignore
-                // any filenames that fail the UUID check.
-                UUID uuid;
-                try {
-                    uuid = UUID.fromString(playerUuid);
-                } catch (Exception ex) {
-                    continue;
-                }
-
-                // it exists, so we make sure to remove the uuid from the map (it may have been added manually in the meantime)
-                nonExistentUsers.remove(uuid);
-                detectedStoredUUIDs.add(uuid);
+    static Collection<org.spongepowered.api.profile.GameProfile> getAllProfiles() {
+        synchronized (lockingObject) {
+            Preconditions.checkState(Sponge.isServerAvailable(), "Server is not available!");
+            if (filesystemWatchService == null) {
+                initInternal();
             }
+            final Map<UUID, org.spongepowered.api.profile.GameProfile> profiles = new HashMap<>();
 
-            // Setup the watch service
-            try {
-                filesystemWatchService = FileSystems.getDefault().newWatchService();
-                watchKey = saveHandler.playersDirectory.toPath().register(
-                        filesystemWatchService,
-                        StandardWatchEventKinds.ENTRY_CREATE,
-                        StandardWatchEventKinds.ENTRY_DELETE
-                );
-            } catch (IOException e) {
-                SpongeImpl.getLogger().warn("Could not start file watcher");
-            }
-        } else {
-            // We've already got the UUIDs, so we need to just see if the file system
-            // watcher has found any more (or removed any).
-            for (WatchEvent event : watchKey.pollEvents()) {
-                @SuppressWarnings("unchecked") WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                WatchEvent.Kind<Path> kind = ev.kind();
+            // Add all cached profiles
+            userCache.asMap().values().stream().map(User::getProfile).forEach(p -> profiles.put(p.getUniqueId(), p));
 
-                Path file = ev.context();
-                String filename = file.getFileName().toString();
-                if (filename.endsWith(".dat")) {
-                    filename = filename.replace(".dat", "");
-                } else if (filename.contains(".")) {
-                    continue; // no point even trying
-                }
+            // Add all known profiles from the data files
+            final PlayerProfileCache profileCache = SpongeImpl.getServer().getPlayerProfileCache();
 
-                UUID uuid;
-                try {
-                    uuid = UUID.fromString(filename);
-                } catch (Exception ex) {
-                    continue;
-                }
+            pollFSWatcher();
+            getProfilesFrmDetectedUUIDs(profileCache, profiles);
 
-                if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-                    detectedStoredUUIDs.add(uuid);
-                } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
-                    detectedStoredUUIDs.remove(uuid);
-                }
-            }
+            // Add all whitelisted users
+            // Note: as the equality check in GameProfile requires both the UUID and name to be equal, we have to filter
+            // out the game profiles by UUID only in the whitelist and ban list. If we don't, we end up with two
+            // GameProfiles with the same UUID but different names, one of which is potentially invalid. For some
+            // We assume that the cache is superior to the whitelist/banlist.
+            //
+            // See https://github.com/SpongePowered/SpongeCommon/issues/1989
+            PlayerList pl = SpongeImpl.getServer().getPlayerList();
+            addToProfiles(pl.getWhitelistedPlayers().getValues().values(), profiles, profileCache);
+            addToProfiles(pl.getBannedPlayers().getValues().values(), profiles, profileCache);
+            return profiles.values();
         }
+    }
+
+    static void init() {
+        synchronized (lockingObject) {
+            initInternal();
+        }
+    }
+
+    // Used to avoid blocking on a lock.
+    private static void initInternal() {
+        Preconditions.checkState(Sponge.isServerAvailable(), "Server is not available!");
+
+        // if we're in init, we need to remove the old service
+        if (filesystemWatchService != null) {
+            try {
+                filesystemWatchService.close();
+            } catch (IOException e) {
+                filesystemWatchService = null;
+            }
+            watchKey = null;
+        }
+
+        detectedStoredUUIDs.clear();
+        nonExistentUsers.clear();
+
+        IMixinSaveHandler saveHandler = (IMixinSaveHandler) WorldManager.getWorldByDimensionId(0).get().getSaveHandler();
+        Set<UUID> uuids = getAvailablePlayerUUIDs(saveHandler.getPlayerSaveDirectory());
+        detectedStoredUUIDs.addAll(uuids);
+
+        // Setup the watch service
+        try {
+            filesystemWatchService = FileSystems.getDefault().newWatchService();
+            watchKey = saveHandler.getPlayerSaveDirectory().register(
+                    filesystemWatchService,
+                    StandardWatchEventKinds.ENTRY_CREATE,
+                    StandardWatchEventKinds.ENTRY_DELETE
+            );
+        } catch (IOException e) {
+            SpongeImpl.getLogger().warn("Could not start file watcher");
+        }
+    }
+
+    private static Set<UUID> getAvailablePlayerUUIDs(Path playersDirectory) {
+        Set<UUID> ret = new HashSet<>();
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(
+                playersDirectory,
+                "*.dat")) {
+            for (Path entry : stream) {
+                try {
+                    String name = entry.getFileName().toString();
+                    ret.add(UUID.fromString(name.substring(0, name.lastIndexOf(".")+1)));
+                } catch (IllegalArgumentException ex) {
+                    // ignored - the file is not of interest to us
+                }
+            }
+        } catch (IOException ex) {
+            SpongeImpl.getLogger().error("Could not get the available UUIDs", ex);
+        }
+
+        return ret;
+    }
+
+    private static void getProfilesFrmDetectedUUIDs(
+            PlayerProfileCache profileCache,
+            Map<UUID, org.spongepowered.api.profile.GameProfile> profiles) {
 
         for (UUID uuid : detectedStoredUUIDs) {
             final GameProfile profile = profileCache.getProfileByUUID(uuid);
@@ -257,17 +280,36 @@ class UserDiscoverer {
                 profiles.put(profile.getId(), (org.spongepowered.api.profile.GameProfile) profile);
             }
         }
+    }
 
-        // Add all whitelisted users
-        // Note: as the equality check in GameProfile requires both the UUID and name to be equal, we have to filter
-        // out the game profiles by UUID only in the whitelist and ban list. If we don't, we end up with two GameProfiles
-        // with the same UUID but different names, one of which is potentially invalid. For some
-        // We assume that the cache is superior to the whitelist/banlist.
-        //
-        // See https://github.com/SpongePowered/SpongeCommon/issues/1989
-        addToProfiles(SpongeImpl.getServer().getPlayerList().getWhitelistedPlayers().getValues().values(), profiles, profileCache);
-        addToProfiles(SpongeImpl.getServer().getPlayerList().getBannedPlayers().getValues().values(), profiles, profileCache);
-        return profiles.values();
+    private static void pollFSWatcher() {
+        // We've already got the UUIDs, so we need to just see if the file system
+        // watcher has found any more (or removed any).
+        for (WatchEvent event : watchKey.pollEvents()) {
+            @SuppressWarnings("unchecked") WatchEvent<Path> ev = (WatchEvent<Path>) event;
+            WatchEvent.Kind<Path> kind = ev.kind();
+
+            Path file = ev.context();
+            String filename = file.getFileName().toString();
+            if (filename.endsWith(".dat")) {
+                filename = filename.replace(".dat", "");
+            } else if (filename.contains(".")) {
+                continue; // no point even trying
+            }
+
+            UUID uuid;
+            try {
+                uuid = UUID.fromString(filename);
+            } catch (Exception ex) {
+                continue;
+            }
+
+            if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
+                detectedStoredUUIDs.add(uuid);
+            } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
+                detectedStoredUUIDs.remove(uuid);
+            }
+        }
     }
 
     private static void addToProfiles(
@@ -303,6 +345,7 @@ class UserDiscoverer {
         return success;
     }
 
+    @Nullable
     private static User getOnlinePlayer(UUID uniqueId) {
         Preconditions.checkState(Sponge.isServerAvailable(), "Server is not available!");
         final PlayerList playerList = SpongeImpl.getServer().getPlayerList();
@@ -337,6 +380,7 @@ class UserDiscoverer {
         return null;
     }
 
+    @Nullable
     private static User getFromStoredData(org.spongepowered.api.profile.GameProfile profile) {
         // if we already saw there was no stored data, then there is no stored data!
         if (nonExistentUsers.contains(profile.getUniqueId())) {
@@ -369,32 +413,31 @@ class UserDiscoverer {
         return user;
     }
 
+    @Nullable
     private static User getFromWhitelist(UUID uniqueId) {
-        GameProfile profile = null;
         UserListWhitelist whiteList = SpongeImpl.getServer().getPlayerList().getWhitelistedPlayers();
-        UserListWhitelistEntry whiteListData = whiteList.getEntry(new GameProfile(uniqueId, ""));
-        if (whiteListData != null) {
-            profile = whiteListData.value;
-        }
-        if (profile != null) {
-            return create(profile);
-        }
-        return null;
+        return getFromEntry(whiteList.getEntry(new GameProfile(uniqueId, "")));
     }
 
+    @Nullable
     private static User getFromBanlist(UUID uniqueId) {
-        GameProfile profile = null;
         UserListBans banList = SpongeImpl.getServer().getPlayerList().getBannedPlayers();
-        UserListEntryBan<GameProfile> banData = banList.getEntry(new GameProfile(uniqueId, ""));
-        if (banData != null) {
-            profile = banData.value;
+        return getFromEntry(banList.getEntry(new GameProfile(uniqueId, "")));
+    }
+
+    @Nullable
+    private static User getFromEntry(@Nullable UserListEntry<GameProfile> entry) {
+        if (entry != null) {
+            GameProfile profile = entry.value;
+            if (profile != null) {
+                return create(profile);
+            }
         }
-        if (profile != null) {
-            return create(profile);
-        }
+
         return null;
     }
 
+    @Nullable
     private static File getPlayerDataFile(UUID uniqueId) {
         // This may be called triggered by mods using FakePlayer during
         // initial world gen (before the overworld is registered). Because of

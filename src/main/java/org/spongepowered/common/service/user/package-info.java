@@ -22,24 +22,5 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.interfaces;
-
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.world.storage.SaveHandler;
-import net.minecraft.world.storage.WorldInfo;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Set;
-import java.util.UUID;
-
-public interface IMixinSaveHandler {
-    void loadSpongeDatData(WorldInfo info) throws IOException;
-
-    void loadDimensionAndOtherData(SaveHandler handler, WorldInfo info, NBTTagCompound compound);
-
-    File getSpongeWorldDirectory();
-
-    Path getPlayerSaveDirectory();
-}
+@org.spongepowered.api.util.annotation.NonnullByDefault
+package org.spongepowered.common.service.user;

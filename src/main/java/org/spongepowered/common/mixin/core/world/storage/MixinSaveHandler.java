@@ -74,8 +74,10 @@ public abstract class MixinSaveHandler implements IMixinSaveHandler {
     private static final String READ_PLAYER_DATA = "readPlayerData(Lnet/minecraft/entity/player/EntityPlayer;)Lnet/minecraft/nbt/NBTTagCompound;";
     private static final String NBT_COMPOUND_SET = "Lnet/minecraft/nbt/NBTTagCompound;setTag(Ljava/lang/String;"
                                                    + "Lnet/minecraft/nbt/NBTBase;)V";
+
     @Shadow @Final private File worldDirectory;
     @Shadow @Final private long initializationTime;
+    @Shadow @Final public File playersDirectory;
 
     private Exception capturedException;
 
@@ -273,4 +275,10 @@ public abstract class MixinSaveHandler implements IMixinSaveHandler {
     public File getSpongeWorldDirectory() {
         return this.worldDirectory;
     }
+
+    @Override
+    public Path getPlayerSaveDirectory() {
+        return this.playersDirectory.toPath();
+    }
+
 }
