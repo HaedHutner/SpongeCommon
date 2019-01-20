@@ -79,7 +79,7 @@ class UserDiscoverer {
     @Nullable private static WatchService filesystemWatchService = null;
     @Nullable private static WatchKey watchKey = null;
 
-    // Used to ensure that race conditions aren't hit with filesystem checks
+    // Used to ensure that race conditions aren't hit when doing the filesystem checks
     private final static Object lockingObject = new Object();
 
     // This is inherently tied to the user cache, so we use its removal listener to remove entries here.
@@ -210,7 +210,7 @@ class UserDiscoverer {
             final PlayerProfileCache profileCache = SpongeImpl.getServer().getPlayerProfileCache();
 
             pollFilesystemWatcher();
-            getProfilesFrmDetectedUUIDs(profileCache, profiles);
+            getProfilesFromDetectedUUIDs(profileCache, profiles);
 
             // Add all whitelisted users
             // Note: as the equality check in GameProfile requires both the UUID and name to be equal, we have to filter
@@ -272,11 +272,10 @@ class UserDiscoverer {
         }
     }
 
+    // This method is potentially slow and should be run as few times as possible (thus, the filesystem scan)
     private static Set<UUID> getAvailablePlayerUUIDs(Path playersDirectory) {
         Set<UUID> ret = new HashSet<>();
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(
-                playersDirectory,
-                "*.dat")) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(playersDirectory, "*.dat")) {
             for (Path entry : stream) {
                 try {
                     String name = entry.getFileName().toString();
@@ -292,7 +291,7 @@ class UserDiscoverer {
         return ret;
     }
 
-    private static void getProfilesFrmDetectedUUIDs(
+    private static void getProfilesFromDetectedUUIDs(
             PlayerProfileCache profileCache,
             Map<UUID, org.spongepowered.api.profile.GameProfile> profiles) {
 
