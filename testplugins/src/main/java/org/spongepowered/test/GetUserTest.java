@@ -69,6 +69,17 @@ public class GetUserTest {
                         "getuser"
                 );
 
+        // for testing tab completion
+        Sponge.getCommandManager()
+                .register(this, CommandSpec.builder()
+                                .arguments(GenericArguments.user(Text.of("name")))
+                                .executor((source, context) -> {
+                                    source.sendMessage(Text.of("Name: ", context.<User>requireOne("name").getName()));
+                                    return CommandResult.success();
+                                }).build(),
+                        "getuserusingarg"
+                );
+
         Sponge.getCommandManager()
                 .register(this, CommandSpec.builder()
                                 .arguments(GenericArguments.string(Text.of("name")))
