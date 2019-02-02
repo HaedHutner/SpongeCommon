@@ -29,6 +29,9 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalCause;
 import com.google.common.cache.RemovalNotification;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.nbt.CompressedStreamTools;
@@ -84,6 +87,7 @@ class UserDiscoverer {
 
     // This is inherently tied to the user cache, so we use its removal listener to remove entries here.
     private static final Map<UUID, org.spongepowered.api.profile.GameProfile> gameProfileCache = new HashMap<>();
+    private static final Multimap<String, User> caseInsensitiveUserByNameCache = HashMultimap.create();
 
     // It's possible for plugins to create 'fake users' with UserStorageService#getOrCreate,
     // whose names aren't registered with Mojang. To allow plugins to lookup
@@ -104,11 +108,13 @@ class UserDiscoverer {
                     // be updated
                     @Nullable String name = removalNotification.getValue().getName();
                     if (name != null) {
-                        userByNameCache.invalidate(name.toLowerCase());
+                        userByNameCache.invalidate(name);
+                        caseInsensitiveUserByNameCache.remove(name.toLowerCase(), removalNotification.getValue());
                     }
                 }
             })
             .build();
+
 
     // If a user doesn't exist, we should not put it into the cache, instead, we track it here.
     private static final Set<UUID> nonExistentUsers = new HashSet<>();
@@ -166,9 +172,14 @@ class UserDiscoverer {
 
     @Nullable
     static User findByUsername(String username) {
-        User user = userByNameCache.getIfPresent(username.toLowerCase());
+        User user = userByNameCache.getIfPresent(username);
         if (user != null) {
             return user;
+        }
+
+        Collection<User> userCollection = caseInsensitiveUserByNameCache.get(username.toLowerCase());
+        if (userCollection.size() == 1) {
+            return userCollection.iterator().next();
         }
 
         // check mojang cache
@@ -502,10 +513,12 @@ class UserDiscoverer {
     }
 
     private static void createCacheEntry(User user) {
+        invalidateEntry(user.getProfile());
         userCache.put(user.getUniqueId(), user);
         gameProfileCache.put(user.getUniqueId(), user.getProfile());
         if (user.getName() != null) {
-            userByNameCache.put(user.getName().toLowerCase(), user);
+            userByNameCache.put(user.getName(), user);
+            caseInsensitiveUserByNameCache.put(user.getName().toLowerCase(), user);
         }
         nonExistentUsers.remove(user.getUniqueId());
     }
@@ -518,6 +531,7 @@ class UserDiscoverer {
             @Nullable User user = userByNameCache.getIfPresent(name);
             if (user != null && uuid.equals(user.getUniqueId())) {
                 userByNameCache.invalidate(name);
+                caseInsensitiveUserByNameCache.remove(user.getName().toLowerCase(), user);
             }
         });
     }
