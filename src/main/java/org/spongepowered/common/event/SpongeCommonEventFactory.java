@@ -33,6 +33,7 @@ import net.minecraft.block.BlockDirectional;
 import net.minecraft.block.BlockEventData;
 import net.minecraft.block.state.BlockPistonStructureHelper;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.IProjectile;
 import net.minecraft.entity.item.EntityItem;
@@ -40,6 +41,7 @@ import net.minecraft.entity.passive.AbstractHorse;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
+import net.minecraft.inventory.ContainerEnchantment;
 import net.minecraft.inventory.ContainerPlayer;
 import net.minecraft.inventory.ContainerRepair;
 import net.minecraft.inventory.IInventory;
@@ -93,11 +95,14 @@ import org.spongepowered.api.event.entity.ai.SetAITargetEvent;
 import org.spongepowered.api.event.item.inventory.ChangeInventoryEvent;
 import org.spongepowered.api.event.item.inventory.CraftItemEvent;
 import org.spongepowered.api.event.item.inventory.DropItemEvent;
+import org.spongepowered.api.event.item.inventory.EnchantItemEvent;
 import org.spongepowered.api.event.item.inventory.InteractItemEvent;
 import org.spongepowered.api.event.item.inventory.TransferInventoryEvent;
 import org.spongepowered.api.event.item.inventory.UpdateAnvilEvent;
 import org.spongepowered.api.event.item.inventory.container.ClickContainerEvent;
 import org.spongepowered.api.event.item.inventory.container.InteractContainerEvent;
+import org.spongepowered.api.event.item.inventory.enchantment.EnchantmentList;
+import org.spongepowered.api.event.item.inventory.enchantment.LevelRequirement;
 import org.spongepowered.api.event.message.MessageEvent;
 import org.spongepowered.api.item.inventory.Inventory;
 import org.spongepowered.api.item.inventory.InventoryArchetype;
@@ -1450,4 +1455,79 @@ public class SpongeCommonEventFactory {
             return event;
         }
     }
+
+    public static int callEnchantEventLevelRequirement(ContainerEnchantment container, int seed, int option,
+            int power, ItemStack itemStack, int levelRequirement) {
+
+        LevelRequirement req = new LevelRequirement(); // TODO create from levelReq
+        Transaction<LevelRequirement> levelReq = new Transaction<>(req, req);
+
+        // TODO where to get the player?
+        ItemStackSnapshot cursor = ItemStackUtil.snapshotOf(player.inventory.getItemStack());
+        Transaction<ItemStackSnapshot> cursorTrans = new Transaction<>(cursor, cursor);
+
+        org.spongepowered.api.item.inventory.Container enchantContainer = ContainerUtil.fromNative(container);
+        org.spongepowered.api.item.inventory.Slot enchSlot = enchantContainer.getSlot(SlotIndex.of(0)).get();
+
+        EnchantItemEvent.CalculateLevelRequirement event =
+                SpongeEventFactory.createEnchantItemEventCalculateLevelRequirement(Sponge.getCauseStackManager().getCurrentCause(),
+                        enchantContainer, cursorTrans, enchSlot, ItemStackUtil.snapshotOf(itemStack), levelReq,
+                        option, power, seed);
+
+        SpongeImpl.postEvent(event);
+
+        return event.getLevelRequirement().getFinal().levelRequirement();
+    }
+
+    public static List<EnchantmentData> callEnchantEventEnchantmentList(ContainerEnchantment container,
+            int seed, ItemStack itemStack, int option, int level, List<EnchantmentData> list) {
+
+        // EnchantmentList impl:
+        // TODO impl: EnchantmentHelper.buildEnchantmentList
+        // TODO impl: fixed getEnchantmentDatas then same as vanilla
+
+        org.spongepowered.api.item.inventory.Container enchantContainer = ContainerUtil.fromNative(container);
+        org.spongepowered.api.item.inventory.Slot enchSlot = enchantContainer.getSlot(SlotIndex.of(0)).get();
+
+        // TODO where to get the player?
+        ItemStackSnapshot cursor = ItemStackUtil.snapshotOf(player.inventory.getItemStack());
+        Transaction<ItemStackSnapshot> cursorTrans = new Transaction<>(cursor, cursor);
+
+        EnchantmentList enchList = new EnchantmentList(); // TODO create from list of EnchantmentData
+        Transaction<EnchantmentList> enchs = new Transaction<>(enchList, enchList);
+
+        EnchantItemEvent.CalculateEnchantment event =
+                SpongeEventFactory.createEnchantItemEventCalculateEnchantment(Sponge.getCauseStackManager().getCurrentCause(),
+                        enchantContainer, cursorTrans, enchSlot, enchs, ItemStackUtil.snapshotOf(itemStack),
+                        level, option, seed);
+
+        SpongeImpl.postEvent(event);
+
+        EnchantmentList finalList = event.getEnchantments().getFinal();
+        // TODO convert back to EnchantmentData finalList -> list
+        return list;
+    }
+
+    public static EnchantItemEvent.EnchantItem callEnchantEventEnchant(ContainerEnchantment container, SlotTransaction enchantItem, SlotTransaction enchantedItem, int option, int seed) {
+        org.spongepowered.api.item.inventory.Container enchantContainer = ContainerUtil.fromNative(container);
+        org.spongepowered.api.item.inventory.Slot enchSlot = enchantContainer.getSlot(SlotIndex.of(0)).get();
+        // TODO where to get the player?
+        ItemStackSnapshot cursor = ItemStackUtil.snapshotOf(player.inventory.getItemStack());
+        Transaction<ItemStackSnapshot> cursorTrans = new Transaction<>(cursor, cursor);
+
+        List<SlotTransaction> slotTrans = new ArrayList<>();
+        // TODO add enchanted Item transaction
+        // TODO add lapis Item transaction
+
+        EnchantItemEvent.EnchantItem event =
+                SpongeEventFactory.createEnchantItemEventEnchantItem(Sponge.getCauseStackManager().getCurrentCause(),
+                        enchantContainer, cursorTrans, enchSlot, enchantContainer, ItemStackUtil.snapshotOf(enchantItem), slotTrans, option, seed);
+
+        SpongeImpl.postEvent(event);
+
+        // TODO rollback if needed
+
+        return event;
+    }
+
 }
