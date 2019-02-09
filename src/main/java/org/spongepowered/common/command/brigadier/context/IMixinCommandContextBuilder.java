@@ -17,8 +17,10 @@ public interface IMixinCommandContextBuilder<S> {
 
     void setFork(boolean fork);
 
+    void setStringRange(StringRange range);
+
     @Nullable RedirectModifier<S> getRedirectModifier();
 
-    boolean isFork();
+    boolean isForks();
 
 }

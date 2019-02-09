@@ -7,9 +7,6 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.context.CommandContextBuilder;
 import com.mojang.brigadier.context.ParsedArgument;
 import org.spongepowered.api.event.cause.Cause;
-import org.spongepowered.api.util.Tuple;
-
-import java.util.Map;
 
 public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S> {
 
@@ -34,10 +31,14 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S> {
     public SpongeCommandContextBuilder<S> copy() {
         final SpongeCommandContextBuilder<S> copy =
                 new SpongeCommandContextBuilder<>(getDispatcher(), getSource(), getRange().getStart(), this.cause, this.completing);
+        IMixinCommandContextBuilder<S> mixinCommandContextBuilder = (IMixinCommandContextBuilder<S>) this;
+        IMixinCommandContextBuilder<S> copyMixinCommandContextBuilder = (IMixinCommandContextBuilder<S>) copy;
         copy.arguments.putAll(this.arguments);
         copy.withChild(getChild());
         copy.withCommand(getCommand());
-        getNodes().forEach(copy::withNode); // will set range and forks
+        copyMixinCommandContextBuilder.setRedirectModifier(mixinCommandContextBuilder.getRedirectModifier());
+        copyMixinCommandContextBuilder.setFork(mixinCommandContextBuilder.isForks());
+        copyMixinCommandContextBuilder.setStringRange(copy.getRange());
         return copy;
     }
 
@@ -55,7 +56,7 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S> {
                 getRange(),
                 child == null ? null : child.build(input),
                 mixinCommandContextBuilder.getRedirectModifier(),
-                mixinCommandContextBuilder.isFork(),
+                mixinCommandContextBuilder.isForks(),
                 this.cause,
                 this.completing);
     }

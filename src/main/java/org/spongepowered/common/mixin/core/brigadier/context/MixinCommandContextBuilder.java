@@ -21,10 +21,12 @@ public abstract class MixinCommandContextBuilder<S> implements IMixinCommandCont
     @Shadow @Nullable private RedirectModifier<S> modifier = null;
     @Shadow private boolean forks;
 
+    @Override
     public RedirectModifier<S> getRedirectModifier() {
         return this.modifier;
     }
 
+    @Override
     public boolean isForks() {
         return this.forks;
     }
@@ -44,7 +46,9 @@ public abstract class MixinCommandContextBuilder<S> implements IMixinCommandCont
         this.forks = fork;
     }
 
-    @Override public boolean isFork() {
-        return this.forks;
+    @Override
+    public void setStringRange(StringRange range) {
+        this.range = range;
     }
+
 }
