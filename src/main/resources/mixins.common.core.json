@@ -137,6 +137,8 @@
         "block.properties.MixinIntegerProperty",
         "block.state.MixinIBlockState",
         "block.state.MixinStateImplementation",
+        "brigadier.context.MixinCommandContextBuilder",
+        "brigadier.MixinStringReader",
         "data.MixinCustomDataHolder",
         "data.MixinDataHolder",
         "data.MixinPropertyHolder",
