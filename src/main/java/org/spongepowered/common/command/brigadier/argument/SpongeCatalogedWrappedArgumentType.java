@@ -22,11 +22,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.command.brigadier;
+package org.spongepowered.common.command.brigadier.argument;
 
-import com.mojang.brigadier.CommandDispatcher;
-import org.spongepowered.api.command.dispatcher.Dispatcher;
+import com.mojang.brigadier.arguments.ArgumentType;
+import org.spongepowered.api.CatalogKey;
+import org.spongepowered.api.CatalogType;
 
-public class SpongeCommandDispatcher<S> extends CommandDispatcher<S> implements Dispatcher {
+public class SpongeCatalogedWrappedArgumentType<T> extends SpongeWrappedArgumentType<T> implements CatalogType {
+
+    private final CatalogKey id;
+    private final String name;
+
+    public SpongeCatalogedWrappedArgumentType(ArgumentType<T> wrappedType, CatalogKey id, String name) {
+        super(wrappedType);
+        this.id = id;
+        this.name = name;
+    }
+
+    @Override
+    public CatalogKey getKey() {
+        return this.id;
+    }
+
+    @Override
+    public String getName() {
+        return this.name;
+    }
 
 }

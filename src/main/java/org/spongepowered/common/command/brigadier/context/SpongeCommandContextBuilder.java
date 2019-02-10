@@ -1,6 +1,31 @@
+/*
+ * This file is part of Sponge, licensed under the MIT License (MIT).
+ *
+ * Copyright (c) SpongePowered <https://www.spongepowered.org>
+ * Copyright (c) contributors
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package org.spongepowered.common.command.brigadier.context;
 
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
@@ -111,33 +136,58 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S>
 
     @Override
     public boolean isCompletion() {
-        return false;
+        return this.completing;
     }
 
     @Override
     public boolean hasAny(Parameter.Key<?> key) {
-        return false;
+        return this.arguments.containsKey(key);
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> Optional<? extends T> getOne(Parameter.Key<T> key) {
-        return Optional.empty();
+        SpongeParameterKey<T> spongeParameterKey = SpongeParameterKey.getSpongeKey(key);
+        Collection<?> collection = getFrom(spongeParameterKey);
+        if (collection.size() > 1) {
+            throw new IllegalArgumentException("More than one entry was found for " + spongeParameterKey.toString());
+        }
+
+        return Optional.ofNullable((T) collection.iterator().next());
     }
 
     @Override
-    public <T> T requireOne(Parameter.Key<T> key) throws NoSuchElementException {
-        return null;
+    @SuppressWarnings("unchecked")
+    public <T> T requireOne(Parameter.Key<T> key) throws NoSuchElementException, IllegalArgumentException {
+        SpongeParameterKey<T> spongeParameterKey = SpongeParameterKey.getSpongeKey(key);
+        Collection<?> collection = getFrom(spongeParameterKey);
+        if (collection.size() > 1) {
+            throw new IllegalArgumentException("More than one entry was found for " + spongeParameterKey.toString());
+        } else if (collection.isEmpty()) {
+            throw new NoSuchElementException("No entry was found for " + spongeParameterKey.toString());
+        }
+
+        return (T) collection.iterator().next();
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> Collection<? extends T> getAll(Parameter.Key<T> key) {
-        return null;
+        return (Collection<? extends T>) getFrom(SpongeParameterKey.getSpongeKey(key));
     }
 
+    private Collection<?> getFrom(SpongeParameterKey<?> key) {
+        Collection<?> collection = this.arguments.get(key);
+        if (collection == null) {
+            return ImmutableSet.of();
+        }
+
+        return collection;
+    }
 
     @Override
     public <T> void putEntry(Parameter.Key<T> key, T object) {
-
+        this.arguments.put(SpongeParameterKey.getSpongeKey(key), object);
     }
 
     @Override
@@ -174,4 +224,5 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S>
     public Builder reset() {
         return null;
     }
+
 }

@@ -138,6 +138,7 @@
         "block.state.MixinIBlockState",
         "block.state.MixinStateImplementation",
         "brigadier.context.MixinCommandContextBuilder",
+        "brigadier.suggestion.MixinSuggestionsBuilder",
         "brigadier.MixinStringReader",
         "data.MixinCustomDataHolder",
         "data.MixinDataHolder",
