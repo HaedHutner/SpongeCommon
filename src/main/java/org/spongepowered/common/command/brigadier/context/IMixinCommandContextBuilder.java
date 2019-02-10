@@ -2,6 +2,7 @@ package org.spongepowered.common.command.brigadier.context;
 
 import com.google.common.collect.Maps;
 import com.mojang.brigadier.RedirectModifier;
+import com.mojang.brigadier.context.ParsedArgument;
 import com.mojang.brigadier.context.StringRange;
 import com.mojang.brigadier.tree.CommandNode;
 
@@ -18,6 +19,8 @@ public interface IMixinCommandContextBuilder<S> {
     void setFork(boolean fork);
 
     void setStringRange(StringRange range);
+
+    void putArguments(Map<String, ParsedArgument<S, ?>> arguments);
 
     @Nullable RedirectModifier<S> getRedirectModifier();
 

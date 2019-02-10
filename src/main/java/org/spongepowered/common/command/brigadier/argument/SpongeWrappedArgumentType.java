@@ -1,4 +1,4 @@
-package org.spongepowered.common.command.brigadier;
+package org.spongepowered.common.command.brigadier.argument;
 
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
@@ -15,8 +15,6 @@ import org.spongepowered.api.text.Text;
 
 import java.util.List;
 import java.util.Optional;
-
-import javax.annotation.Nullable;
 
 public class SpongeWrappedArgumentType<T> implements ArgumentType<T>, ValueParameter<T> {
 

@@ -1,4 +1,4 @@
-package org.spongepowered.common.command.brigadier;
+package org.spongepowered.common.command.brigadier.argument;
 
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;

@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 
 public class SpongeParameterValueBuilder<T> implements Parameter.Value.Builder<T> {
 
+    @Nullable private Class<T> valueClass;
     @Nullable private String key;
     private final List<ValueParser<? extends T>> parsers = new ArrayList<>();
     @Nullable private ValueCompleter completer;
@@ -33,6 +34,12 @@ public class SpongeParameterValueBuilder<T> implements Parameter.Value.Builder<T
     public Parameter.Value.Builder<T> setKey(String key) {
         this.key = Objects.requireNonNull(key, "The key cannot be null");
         return this;
+    }
+
+    @Override
+    public Parameter.Value.Builder<T> setValueClass(Class<T> valueClass) throws IllegalArgumentException {
+
+        return null;
     }
 
     @Override

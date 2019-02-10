@@ -2,6 +2,7 @@ package org.spongepowered.common.mixin.core.brigadier.context;
 
 import com.mojang.brigadier.RedirectModifier;
 import com.mojang.brigadier.context.CommandContextBuilder;
+import com.mojang.brigadier.context.ParsedArgument;
 import com.mojang.brigadier.context.StringRange;
 import com.mojang.brigadier.tree.CommandNode;
 import org.spongepowered.asm.mixin.Final;
@@ -16,6 +17,7 @@ import javax.annotation.Nullable;
 @Mixin(CommandContextBuilder.class)
 public abstract class MixinCommandContextBuilder<S> implements IMixinCommandContextBuilder<S> {
 
+    @Shadow @Final private Map<String, ParsedArgument<S, ?>> arguments;
     @Shadow @Final private Map<CommandNode<S>, StringRange> nodes;
     @Shadow private StringRange range;
     @Shadow @Nullable private RedirectModifier<S> modifier = null;
@@ -51,4 +53,8 @@ public abstract class MixinCommandContextBuilder<S> implements IMixinCommandCont
         this.range = range;
     }
 
+    @Override
+    public void putArguments(Map<String, ParsedArgument<S, ?>> arguments) {
+        this.arguments.putAll(arguments);
+    }
 }
