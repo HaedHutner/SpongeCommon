@@ -30,12 +30,10 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import org.spongepowered.api.CatalogKey;
-import org.spongepowered.api.CatalogType;
 import org.spongepowered.api.command.exception.ArgumentParseException;
 import org.spongepowered.api.command.parameter.Completions;
 import org.spongepowered.api.command.parameter.managed.ValueParameter;
-import org.spongepowered.api.command.parameter.token.ArgumentReader;
+import org.spongepowered.api.command.parameter.ArgumentReader;
 import org.spongepowered.api.text.Text;
 
 import java.util.Collection;

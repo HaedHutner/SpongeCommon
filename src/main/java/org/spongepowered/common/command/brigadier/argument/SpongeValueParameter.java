@@ -37,7 +37,7 @@ import org.spongepowered.api.command.parameter.managed.ValueCompleter;
 import org.spongepowered.api.command.parameter.managed.ValueParameter;
 import org.spongepowered.api.command.parameter.managed.ValueParser;
 import org.spongepowered.api.command.parameter.managed.ValueUsage;
-import org.spongepowered.api.command.parameter.token.ArgumentReader;
+import org.spongepowered.api.command.parameter.ArgumentReader;
 import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.common.command.brigadier.context.SpongeCommandContext;
