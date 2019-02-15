@@ -35,7 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
-public abstract class SpongeCommandManager extends CommandDispatcher<ICommandSource> implements CommandManager {
+public class SpongeCommandManager extends CommandDispatcher<ICommandSource> implements CommandManager {
 
     // Our Sponge commands will end up on a different node so that we can take advantage of the Cause instead.
     private final CommandDispatcher<Cause> spongeCommandDispatcher = new CommandDispatcher<>();
@@ -69,6 +69,9 @@ public abstract class SpongeCommandManager extends CommandDispatcher<ICommandSou
 
         // permissions
         final String permission = container.getId() + ".command." + requestedAlias;
+
+        // TODO: can we use IPhaseContexts to our advantage and store the subject?
+        //  May just do what mods expect too.
         Predicate<ICommandSource> requirement = toBuild.getRequirement().and(source ->
                 CommandCauseHelper.getSubject(
                         Sponge.getCauseStackManager().getCurrentCause()).orElseGet(() -> Sponge.getServer().getConsole()).hasPermission(permission));
