@@ -1,5 +1,11 @@
 package org.spongepowered.common.command.manager;
 
-public class SpongeICommandSourceCommandManager {
+import net.minecraft.command.ICommandSource;
+import org.spongepowered.api.Sponge;
+import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.common.command.CommandCauseHelper;
+
+public class SpongeICommandSourceCommandManager extends SpongeCommandManager<ICommandSource> {
+
 
 }

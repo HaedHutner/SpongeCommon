@@ -37,6 +37,7 @@ import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.service.permission.Subject;
 import org.spongepowered.api.text.channel.MessageChannel;
 import org.spongepowered.api.world.Location;
+import org.spongepowered.common.command.CommandCauseHelper;
 import org.spongepowered.common.command.parameter.SpongeParameterKey;
 
 import java.util.Collection;
@@ -97,7 +98,7 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S>
     @Override
     public MessageChannel getTargetMessageChannel() {
         if (this.channel == null) {
-            this.channel = CommandContextHelper.getTargetMessageChannel(this.cause);
+            this.channel = CommandCauseHelper.getTargetMessageChannel(this.cause);
         }
 
         return this.channel;
@@ -106,7 +107,7 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S>
     @Override
     public Optional<Subject> getSubject() {
         if (this.subject == null) {
-            this.subject = CommandContextHelper.getSubject(this.cause);
+            this.subject = CommandCauseHelper.getSubject(this.cause);
         }
 
         return this.subject;
@@ -116,9 +117,9 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S>
     public Optional<Location> getLocation() {
         if (this.location == null) {
             if (this.blockSnapshot != null && this.blockSnapshot.isPresent()) {
-                this.location = CommandContextHelper.getLocation(this.cause, this.blockSnapshot.get());
+                this.location = CommandCauseHelper.getLocation(this.cause, this.blockSnapshot.get());
             } else {
-                this.location = CommandContextHelper.getLocation(this.cause);
+                this.location = CommandCauseHelper.getLocation(this.cause);
             }
         }
 
@@ -128,7 +129,7 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S>
     @Override
     public Optional<BlockSnapshot> getTargetBlock() {
         if (this.blockSnapshot == null) {
-            this.blockSnapshot = CommandContextHelper.getTargetBlock(this.cause);
+            this.blockSnapshot = CommandCauseHelper.getTargetBlock(this.cause);
         }
 
         return this.blockSnapshot;

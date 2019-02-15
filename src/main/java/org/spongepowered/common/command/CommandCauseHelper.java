@@ -22,7 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.command.brigadier.context;
+package org.spongepowered.common.command;
 
 import org.spongepowered.api.block.BlockSnapshot;
 import org.spongepowered.api.event.cause.Cause;
@@ -37,7 +37,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-class CommandContextHelper {
+public class CommandCauseHelper {
 
     public static MessageChannel getTargetMessageChannel(Cause cause) {
         MessageChannel channel = cause.getContext().get(EventContextKeys.MESSAGE_CHANNEL)
