@@ -24,6 +24,55 @@
  */
 package org.spongepowered.common.command.parameter;
 
-public class SpongeParameterValue {
+import org.spongepowered.api.command.exception.ArgumentParseException;
+import org.spongepowered.api.command.parameter.ArgumentReader;
+import org.spongepowered.api.command.parameter.CommandContext;
+import org.spongepowered.api.command.parameter.Parameter;
+import org.spongepowered.api.command.parameter.managed.ValueCompleter;
+import org.spongepowered.api.command.parameter.managed.ValueParser;
+import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.api.text.Text;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
+
+public class SpongeParameterValue<T> implements Parameter.Value<T> {
+
+    @Override
+    public void parse(Cause cause, ArgumentReader args, CommandContext context) throws ArgumentParseException {
+
+    }
+
+    @Override
+    public List<String> complete(Cause cause, ArgumentReader args, CommandContext context) throws ArgumentParseException {
+        return null;
+    }
+
+    @Override
+    public Text getUsage(Cause cause) {
+        return null;
+    }
+
+    @Override
+    public Key<T> getKey() {
+        return null;
+    }
+
+    @Override
+    public Collection<ValueParser<? extends T>> getParsers() {
+        return null;
+    }
+
+    @Override
+    public Optional<ValueCompleter> getCompleter() {
+        return Optional.empty();
+    }
+
+    @Override
+    public Predicate<Cause> getRequirement() {
+        return null;
+    }
 
 }

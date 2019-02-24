@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.context.CommandContextBuilder;
 import com.mojang.brigadier.context.ParsedArgument;
 import org.spongepowered.api.block.BlockSnapshot;
@@ -37,7 +36,7 @@ import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.service.permission.Subject;
 import org.spongepowered.api.text.channel.MessageChannel;
 import org.spongepowered.api.world.Location;
-import org.spongepowered.common.command.CommandCauseHelper;
+import org.spongepowered.common.command.CommandHelper;
 import org.spongepowered.common.command.parameter.SpongeParameterKey;
 
 import java.util.Collection;
@@ -46,13 +45,25 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S>
+public class SpongeCommandContextBuilder extends CommandContextBuilder<Cause>
         implements org.spongepowered.api.command.parameter.CommandContext.Builder {
+
+    public static SpongeCommandContextBuilder createFrom(CommandContextBuilder<Cause> original) {
+        final SpongeCommandContextBuilder copy =
+                new SpongeCommandContextBuilder(original.getDispatcher(), original.getSource(), original.getRange().getStart());
+        IMixinCommandContextBuilder<Cause> mixinCommandContextBuilder = (IMixinCommandContextBuilder<Cause>) original;
+        IMixinCommandContextBuilder<Cause> copyMixinCommandContextBuilder = (IMixinCommandContextBuilder<Cause>) copy;
+        copy.withChild(original.getChild());
+        copy.withCommand(original.getCommand());
+        copyMixinCommandContextBuilder.putArguments(original.getArguments());
+        copyMixinCommandContextBuilder.setRedirectModifier(mixinCommandContextBuilder.getRedirectModifier());
+        copyMixinCommandContextBuilder.setFork(mixinCommandContextBuilder.isForks());
+        copyMixinCommandContextBuilder.setStringRange(copy.getRange());
+        return copy;
+    }
 
     // The Sponge command system allows for multiple arguments to be stored under the same key.
     private final LinkedHashMultimap<SpongeParameterKey<?>, Object> arguments = LinkedHashMultimap.create();
-    private final Cause cause;
-    private final boolean completing;
 
     @Nullable private MessageChannel channel;
 
@@ -61,44 +72,33 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S>
     @Nullable private Optional<Location> location;
     @Nullable private Optional<BlockSnapshot> blockSnapshot;
 
-    public SpongeCommandContextBuilder(CommandDispatcher<S> dispatcher, S source, int start, Cause cause, boolean completing) {
+    public SpongeCommandContextBuilder(CommandDispatcher<Cause> dispatcher, Cause source, int start) {
         super(dispatcher, source, start);
-        this.cause = cause;
-        this.completing = completing;
     }
 
     @Override
-    public SpongeCommandContextBuilder<S> withArgument(String name, ParsedArgument<S, ?> argument) {
+    public SpongeCommandContextBuilder withArgument(String name, ParsedArgument<Cause, ?> argument) {
         // With mods, they'll do anything, so we'll store it under the "Object" class.
         this.arguments.put(new SpongeParameterKey<>(name, Object.class), argument.getResult());
         super.withArgument(name, argument); // for getArguments and any mods that use this.
         return this;
     }
 
-    public SpongeCommandContextBuilder<S> copy() {
-        final SpongeCommandContextBuilder<S> copy =
-                new SpongeCommandContextBuilder<>(getDispatcher(), getSource(), getRange().getStart(), this.cause, this.completing);
-        IMixinCommandContextBuilder<S> mixinCommandContextBuilder = (IMixinCommandContextBuilder<S>) this;
-        IMixinCommandContextBuilder<S> copyMixinCommandContextBuilder = (IMixinCommandContextBuilder<S>) copy;
+    public SpongeCommandContextBuilder copy() {
+        final SpongeCommandContextBuilder copy = createFrom(this);
         copy.arguments.putAll(this.arguments);
-        copy.withChild(getChild());
-        copy.withCommand(getCommand());
-        copyMixinCommandContextBuilder.putArguments(getArguments());
-        copyMixinCommandContextBuilder.setRedirectModifier(mixinCommandContextBuilder.getRedirectModifier());
-        copyMixinCommandContextBuilder.setFork(mixinCommandContextBuilder.isForks());
-        copyMixinCommandContextBuilder.setStringRange(copy.getRange());
         return copy;
     }
 
     @Override
     public Cause getCause() {
-        return this.cause;
+        return getSource();
     }
 
     @Override
     public MessageChannel getTargetMessageChannel() {
         if (this.channel == null) {
-            this.channel = CommandCauseHelper.getTargetMessageChannel(this.cause);
+            this.channel = CommandHelper.getTargetMessageChannel(getCause());
         }
 
         return this.channel;
@@ -107,7 +107,7 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S>
     @Override
     public Optional<Subject> getSubject() {
         if (this.subject == null) {
-            this.subject = CommandCauseHelper.getSubject(this.cause);
+            this.subject = CommandHelper.getSubject(getCause());
         }
 
         return this.subject;
@@ -117,9 +117,9 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S>
     public Optional<Location> getLocation() {
         if (this.location == null) {
             if (this.blockSnapshot != null && this.blockSnapshot.isPresent()) {
-                this.location = CommandCauseHelper.getLocation(this.cause, this.blockSnapshot.get());
+                this.location = CommandHelper.getLocation(getCause(), this.blockSnapshot.get());
             } else {
-                this.location = CommandCauseHelper.getLocation(this.cause);
+                this.location = CommandHelper.getLocation(getCause());
             }
         }
 
@@ -129,15 +129,10 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S>
     @Override
     public Optional<BlockSnapshot> getTargetBlock() {
         if (this.blockSnapshot == null) {
-            this.blockSnapshot = CommandCauseHelper.getTargetBlock(this.cause);
+            this.blockSnapshot = CommandHelper.getTargetBlock(getCause());
         }
 
         return this.blockSnapshot;
-    }
-
-    @Override
-    public boolean isCompletion() {
-        return this.completing;
     }
 
     @Override
@@ -202,11 +197,11 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S>
     }
 
     @Override
-    public CommandContext<S> build(final String input) {
-        final CommandContextBuilder<S> child = getChild();
+    public SpongeCommandContext build(final String input) {
+        final CommandContextBuilder child = getChild();
         // TODO: this might not be needed for the derived class, come back when mixins are working
-        final IMixinCommandContextBuilder<S> mixinCommandContextBuilder = (IMixinCommandContextBuilder<S>) this;
-        return new SpongeCommandContext<S>(
+        final IMixinCommandContextBuilder<Cause> mixinCommandContextBuilder = (IMixinCommandContextBuilder<Cause>) this;
+        return new SpongeCommandContext(
                 getSource(),
                 input,
                 getArguments(),
@@ -216,9 +211,7 @@ public class SpongeCommandContextBuilder<S> extends CommandContextBuilder<S>
                 getRange(),
                 child == null ? null : child.build(input),
                 mixinCommandContextBuilder.getRedirectModifier(),
-                mixinCommandContextBuilder.isForks(),
-                this.cause,
-                this.completing);
+                mixinCommandContextBuilder.isForks());
     }
 
     @Override

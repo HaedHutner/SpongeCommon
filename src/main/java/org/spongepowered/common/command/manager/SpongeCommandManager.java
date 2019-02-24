@@ -23,7 +23,7 @@ import org.spongepowered.api.service.permission.Subject;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.channel.MessageChannel;
 import org.spongepowered.api.text.channel.MessageReceiver;
-import org.spongepowered.common.command.CommandCauseHelper;
+import org.spongepowered.common.command.CommandHelper;
 import org.spongepowered.common.mixin.core.brigadier.builder.MixinArgumentBuilder;
 
 import java.util.Collection;
@@ -35,6 +35,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import javax.inject.Singleton;
+
+@Singleton
 public class SpongeCommandManager extends CommandDispatcher<ICommandSource> implements CommandManager {
 
     // Our Sponge commands will end up on a different node so that we can take advantage of the Cause instead.
@@ -73,7 +76,7 @@ public class SpongeCommandManager extends CommandDispatcher<ICommandSource> impl
         // TODO: can we use IPhaseContexts to our advantage and store the subject?
         //  May just do what mods expect too.
         Predicate<ICommandSource> requirement = toBuild.getRequirement().and(source ->
-                CommandCauseHelper.getSubject(
+                CommandHelper.getSubject(
                         Sponge.getCauseStackManager().getCurrentCause()).orElseGet(() -> Sponge.getServer().getConsole()).hasPermission(permission));
         toBuild.requires(requirement);
 
@@ -186,7 +189,7 @@ public class SpongeCommandManager extends CommandDispatcher<ICommandSource> impl
 
     // TODO: Temporary logic,?
     private ICommandSource getSource(Cause cause) {
-        return CommandCauseHelper.getSubject(cause)
+        return CommandHelper.getSubject(cause)
                 .filter(x -> x instanceof ICommandSource)
                 .map(x -> (ICommandSource) x)
                 .orElseGet(() -> (ICommandSource) Sponge.getServer().getConsole());

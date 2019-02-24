@@ -29,14 +29,14 @@ import org.spongepowered.api.command.parameter.Parameter;
 import org.spongepowered.api.command.parameter.managed.ValueCompleter;
 import org.spongepowered.api.command.parameter.managed.ValueParser;
 import org.spongepowered.api.command.parameter.managed.ValueUsage;
-import org.spongepowered.api.command.source.CommandSource;
 import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.common.command.CommandHelper;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -48,8 +48,8 @@ public class SpongeParameterValueBuilder<T> implements Parameter.Value.Builder<T
     private final List<ValueParser<? extends T>> parsers = new ArrayList<>();
     @Nullable private ValueCompleter completer;
     @Nullable private ValueUsage usage;
-    @Nullable private BiPredicate<Cause, CommandSource> executionRequirements;
-    @Nullable private BiFunction<Cause, CommandSource, T> defaultValueFunction;
+    @Nullable private Predicate<Cause> executionRequirements;
+    @Nullable private Function<Cause, T> defaultValueFunction;
     private boolean consumesAll;
     private boolean isOptional;
 
@@ -62,8 +62,8 @@ public class SpongeParameterValueBuilder<T> implements Parameter.Value.Builder<T
 
     @Override
     public Parameter.Value.Builder<T> setValueClass(Class<T> valueClass) throws IllegalArgumentException {
-
-        return null;
+        this.valueClass = valueClass;
+        return this;
     }
 
     @Override
@@ -85,7 +85,16 @@ public class SpongeParameterValueBuilder<T> implements Parameter.Value.Builder<T
     }
 
     @Override
-    public Parameter.Value.Builder<T> setRequirements(@Nullable BiPredicate<Cause, CommandSource> executionRequirements) {
+    public Parameter.Value.Builder<T> setRequiredPermission(@Nullable String permission) {
+        if (permission == null) {
+            return setUsage(null);
+        } else {
+            return setRequirements(cause -> CommandHelper.getSubject(cause).map(x -> x.hasPermission(permission)).orElse(true));
+        }
+    }
+
+    @Override
+    public Parameter.Value.Builder<T> setRequirements(@Nullable Predicate<Cause> executionRequirements) {
         this.executionRequirements = executionRequirements;
         return this;
     }
@@ -104,19 +113,19 @@ public class SpongeParameterValueBuilder<T> implements Parameter.Value.Builder<T
 
     @Override
     public Parameter.Value.Builder<T> orDefault(Supplier<T> defaultValueSupplier) {
-        return orDefault((cause, commandSource) -> defaultValueSupplier.get());
+        return orDefault((cause) -> defaultValueSupplier.get());
     }
 
     @Override
-    public Parameter.Value.Builder<T> orDefault(BiFunction<Cause, CommandSource, T> defaultValueFunction) {
+    public Parameter.Value.Builder<T> orDefault(Function<Cause, T> defaultValueFunction) {
         this.defaultValueFunction = defaultValueFunction;
         return this;
     }
 
     @Override
-    public Parameter.Value<T> build() throws IllegalStateException {
+    public SpongeParameterValue<T> build() throws IllegalStateException {
         Preconditions.checkState(this.key != null, "The command key may not be null");
-        Preconditions.checkState(!this.parsers.isEmpty(), "There must be parses");
+        Preconditions.checkState(!this.parsers.isEmpty(), "There must be parsers");
         return null;
     }
 

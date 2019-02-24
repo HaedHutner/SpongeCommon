@@ -24,6 +24,7 @@
  */
 package org.spongepowered.common.command.brigadier.context;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.RedirectModifier;
@@ -37,8 +38,9 @@ import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.service.permission.Subject;
 import org.spongepowered.api.text.channel.MessageChannel;
 import org.spongepowered.api.world.Location;
-import org.spongepowered.common.command.CommandCauseHelper;
+import org.spongepowered.common.command.CommandHelper;
 import org.spongepowered.common.command.parameter.SpongeParameterKey;
+import org.spongepowered.common.mixin.core.brigadier.context.MixinCommandContext;
 
 import java.util.Collection;
 import java.util.Map;
@@ -47,11 +49,9 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-public class SpongeCommandContext<S> extends CommandContext<S> implements org.spongepowered.api.command.parameter.CommandContext {
+public class SpongeCommandContext extends CommandContext<Cause> implements org.spongepowered.api.command.parameter.CommandContext {
 
     private final Multimap<SpongeParameterKey<?>, Object> argumentMultimap;
-    private final Cause cause;
-    private final boolean completing;
 
     @Nullable private MessageChannel channel;
 
@@ -60,34 +60,43 @@ public class SpongeCommandContext<S> extends CommandContext<S> implements org.sp
     @Nullable private Optional<Location> location;
     @Nullable private Optional<BlockSnapshot> blockSnapshot;
 
+    public SpongeCommandContext(CommandContext<Cause> causeCommandContext) {
+        super(causeCommandContext.getSource(),
+                causeCommandContext.getInput(),
+                ((MixinCommandContext) causeCommandContext).getArguments(),
+                causeCommandContext.getCommand(),
+                causeCommandContext.getNodes(),
+                causeCommandContext.getRange(),
+                causeCommandContext.getChild(),
+                causeCommandContext.getRedirectModifier(),
+                causeCommandContext.isForked());
+        this.argumentMultimap = HashMultimap.create();
+    }
+
     public SpongeCommandContext(
-            S source,
+            Cause source,
             String input,
-            Map<String, ParsedArgument<S, ?>> brigArguments,
+            Map<String, ParsedArgument<Cause, ?>> brigArguments,
             Multimap<SpongeParameterKey<?>, Object> arguments,
-            Command<S> command,
-            Map<CommandNode<S>, StringRange> nodes,
+            Command<Cause> command,
+            Map<CommandNode<Cause>, StringRange> nodes,
             StringRange range,
-            @Nullable CommandContext<S> child,
-            @Nullable RedirectModifier<S> modifier,
-            boolean forks,
-            Cause cause,
-            boolean completing) {
+            @Nullable CommandContext<Cause> child,
+            @Nullable RedirectModifier<Cause> modifier,
+            boolean forks) {
         super(source, input, brigArguments, command, nodes, range, child, modifier, forks);
-        this.cause = cause;
-        this.completing = completing;
         this.argumentMultimap = arguments;
     }
 
     @Override
     public Cause getCause() {
-        return this.cause;
+        return getSource();
     }
 
     @Override
     public MessageChannel getTargetMessageChannel() {
         if (this.channel == null) {
-            this.channel = CommandCauseHelper.getTargetMessageChannel(this.cause);
+            this.channel = CommandHelper.getTargetMessageChannel(getSource());
         }
 
         return this.channel;
@@ -96,7 +105,7 @@ public class SpongeCommandContext<S> extends CommandContext<S> implements org.sp
     @Override
     public Optional<Subject> getSubject() {
         if (this.subject == null) {
-            this.subject = CommandCauseHelper.getSubject(this.cause);
+            this.subject = CommandHelper.getSubject(getSource());
         }
 
         return this.subject;
@@ -106,9 +115,9 @@ public class SpongeCommandContext<S> extends CommandContext<S> implements org.sp
     public Optional<Location> getLocation() {
         if (this.location == null) {
             if (this.blockSnapshot != null && this.blockSnapshot.isPresent()) {
-                this.location = CommandCauseHelper.getLocation(this.cause, this.blockSnapshot.get());
+                this.location = CommandHelper.getLocation(getSource(), this.blockSnapshot.get());
             } else {
-                this.location = CommandCauseHelper.getLocation(this.cause);
+                this.location = CommandHelper.getLocation(getSource());
             }
         }
 
@@ -118,15 +127,10 @@ public class SpongeCommandContext<S> extends CommandContext<S> implements org.sp
     @Override
     public Optional<BlockSnapshot> getTargetBlock() {
         if (this.blockSnapshot == null) {
-            this.blockSnapshot = CommandCauseHelper.getTargetBlock(this.cause);
+            this.blockSnapshot = CommandHelper.getTargetBlock(getSource());
         }
 
         return this.blockSnapshot;
-    }
-
-    @Override
-    public boolean isCompletion() {
-        return this.completing;
     }
 
     @Override public boolean hasAny(Parameter.Key<?> key) {

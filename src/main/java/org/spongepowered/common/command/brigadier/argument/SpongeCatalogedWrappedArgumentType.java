@@ -28,7 +28,7 @@ import com.mojang.brigadier.arguments.ArgumentType;
 import org.spongepowered.api.CatalogKey;
 import org.spongepowered.api.CatalogType;
 
-public class SpongeCatalogedWrappedArgumentType<T> extends SpongeWrappedArgumentType<T> implements CatalogType {
+public class SpongeCatalogedWrappedArgumentType<T> extends SpongeArgumentType<T> implements CatalogType {
 
     private final CatalogKey id;
     private final String name;
@@ -48,5 +48,6 @@ public class SpongeCatalogedWrappedArgumentType<T> extends SpongeWrappedArgument
     public String getName() {
         return this.name;
     }
+
 
 }

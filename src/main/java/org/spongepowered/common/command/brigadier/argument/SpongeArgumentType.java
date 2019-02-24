@@ -26,57 +26,40 @@ package org.spongepowered.common.command.brigadier.argument;
 
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
-import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import org.spongepowered.api.command.exception.ArgumentParseException;
+import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.command.parameter.Completions;
 import org.spongepowered.api.command.parameter.managed.ValueParameter;
 import org.spongepowered.api.command.parameter.ArgumentReader;
+import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.text.Text;
 
-import java.util.Collection;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
-public class SpongeWrappedArgumentType<T> implements ArgumentType<T>, ValueParameter<T> {
+public class SpongeArgumentType<T> implements ValueParameter<T> {
 
     private final ArgumentType<T> wrappedType;
 
-    public SpongeWrappedArgumentType(ArgumentType<T> wrappedType) {
+    public SpongeArgumentType(ArgumentType<T> wrappedType) {
         this.wrappedType = wrappedType;
     }
 
     @Override
-    public T parse(StringReader reader) throws CommandSyntaxException {
-        return this.wrappedType.parse(reader);
+    public void complete(Completions.Builder completionBuilder, CommandContext context) {
+        this.wrappedType.listSuggestions((com.mojang.brigadier.context.CommandContext<Cause>) context, (SuggestionsBuilder) completionBuilder);
     }
 
     @Override
-    public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-        return this.wrappedType.listSuggestions(context, builder);
-    }
-
-    @Override
-    public Collection<String> getExamples() {
-        return this.wrappedType.getExamples();
-    }
-
-    @Override
-    public Optional<T> getValue(ArgumentReader args, org.spongepowered.api.command.parameter.CommandContext.Builder context)
-            throws ArgumentParseException {
+    public Optional<? extends T> getValue(ArgumentReader.Mutable args, CommandContext.Builder context) throws ArgumentParseException {
         try {
-            return Optional.ofNullable(parse((StringReader) args));
+            return Optional.ofNullable(this.wrappedType.parse((StringReader) args));
         } catch (CommandSyntaxException e) {
-            throw new ArgumentParseException(Text.of(e.getMessage()), e, e.getInput(), e.getCursor());
+            e.printStackTrace();
+            // TODO
+            throw new ArgumentParseException(Text.of("to be replaced"), e ,"to be replaced", args.getCursor());
         }
-
-    }
-
-    @Override
-    public void complete(Completions.Builder completionBuilder, org.spongepowered.api.command.parameter.CommandContext context) {
-        listSuggestions((CommandContext) context, (SuggestionsBuilder) completionBuilder);
     }
 
 }

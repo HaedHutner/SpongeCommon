@@ -25,6 +25,7 @@
 package org.spongepowered.common.command;
 
 import org.spongepowered.api.block.BlockSnapshot;
+import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.event.cause.EventContextKeys;
 import org.spongepowered.api.service.permission.Subject;
@@ -32,12 +33,13 @@ import org.spongepowered.api.text.channel.MessageChannel;
 import org.spongepowered.api.text.channel.MessageReceiver;
 import org.spongepowered.api.world.Locatable;
 import org.spongepowered.api.world.Location;
+import org.spongepowered.common.command.brigadier.context.SpongeCommandContext;
 
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-public class CommandCauseHelper {
+public class CommandHelper {
 
     public static MessageChannel getTargetMessageChannel(Cause cause) {
         MessageChannel channel = cause.getContext().get(EventContextKeys.MESSAGE_CHANNEL)
@@ -83,5 +85,13 @@ public class CommandCauseHelper {
 
         return blockSnapshot;
 
+    }
+
+    public static SpongeCommandContext fromBrig(com.mojang.brigadier.context.CommandContext<Cause> context) {
+        if (context instanceof SpongeCommandContext) {
+            return (SpongeCommandContext) context;
+        }
+
+        return new SpongeCommandContext(context);
     }
 }
