@@ -347,7 +347,7 @@ public final class TrackingUtil {
         if (((IPhaseState) phaseState).shouldCaptureBlockChangeOrSkip(phaseContext, pos)) {
             //final IBlockState actualState = currentState.getActualState(world, pos);
             originalBlockSnapshot = mixinWorld.createSpongeBlockSnapshot(currentState, currentState, pos, flags);
-            final List<BlockSnapshot> capturedSnapshots = phaseContext.getCapturedBlocks();
+            final List<SpongeBlockSnapshot> capturedSnapshots = phaseContext.getCapturedBlocks();
             final Block newBlock = newState.getBlock();
 
             associateBlockChangeWithSnapshot(phaseState, newBlock, currentState, originalBlockSnapshot, capturedSnapshots);
@@ -378,7 +378,7 @@ public final class TrackingUtil {
     }
 
     static void associateBlockChangeWithSnapshot(IPhaseState<?> phaseState, Block newBlock, IBlockState currentState, SpongeBlockSnapshot snapshot,
-        List<BlockSnapshot> capturedSnapshots) {
+        List<SpongeBlockSnapshot> capturedSnapshots) {
         Block originalBlock = currentState.getBlock();
         if (phaseState == BlockPhase.State.BLOCK_DECAY) {
             if (newBlock == Blocks.AIR) {
@@ -442,7 +442,7 @@ public final class TrackingUtil {
         };
     }
 
-    public static boolean processBlockCaptures(List<BlockSnapshot> snapshots, IPhaseState<?> state, PhaseContext<?> context) {
+    public static boolean processBlockCaptures(List<SpongeBlockSnapshot> snapshots, IPhaseState<?> state, PhaseContext<?> context) {
         return processBlockCaptures(snapshots, state, context, 0);
     }
 
@@ -460,7 +460,7 @@ public final class TrackingUtil {
      * @return True if no events or transactions were cancelled
      */
     @SuppressWarnings({"unchecked", "ConstantConditions", "rawtypes"})
-    public static boolean processBlockCaptures(List<BlockSnapshot> snapshots, IPhaseState<?> state, PhaseContext<?> context, int currentDepth) {
+    public static boolean processBlockCaptures(List<SpongeBlockSnapshot> snapshots, IPhaseState<?> state, PhaseContext<?> context, int currentDepth) {
         if (snapshots.isEmpty()) {
             return false;
         }
@@ -517,7 +517,7 @@ public final class TrackingUtil {
         }
     }
 
-    private static void createTransactionLists(List<BlockSnapshot> snapshots, ImmutableList<Transaction<BlockSnapshot>>[] transactionArrays,
+    private static void createTransactionLists(List<SpongeBlockSnapshot> snapshots, ImmutableList<Transaction<BlockSnapshot>>[] transactionArrays,
         ImmutableList.Builder<Transaction<BlockSnapshot>>[] transactionBuilders) {
         for (BlockSnapshot snapshot : snapshots) {
             // This processes each snapshot to assign them to the correct event in the next area, with the

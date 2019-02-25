@@ -144,8 +144,10 @@ public class SpongeBlockSnapshotBuilder extends AbstractDataBuilder<BlockSnapsho
         return this;
     }
 
-    public SpongeBlockSnapshotBuilder unsafeNbt(NBTTagCompound compound) {
-        this.compound = compound.copy();
+    public SpongeBlockSnapshotBuilder unsafeNbt(@Nullable NBTTagCompound compound) {
+        if (compound != null) {
+            this.compound = compound.copy();
+        }
         return this;
     }
 
@@ -219,7 +221,7 @@ public class SpongeBlockSnapshotBuilder extends AbstractDataBuilder<BlockSnapsho
     }
 
     @Override
-    public BlockSnapshot build() {
+    public SpongeBlockSnapshot build() {
         checkState(this.blockState != null);
         if (this.extendedState == null) {
             this.extendedState = this.blockState;

@@ -49,6 +49,7 @@ import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 import org.spongepowered.asm.util.PrettyPrinter;
 import org.spongepowered.common.SpongeImpl;
+import org.spongepowered.common.block.SpongeBlockSnapshot;
 import org.spongepowered.common.entity.EntityUtil;
 import org.spongepowered.common.event.ShouldFire;
 import org.spongepowered.common.event.SpongeCommonEventFactory;
@@ -136,7 +137,7 @@ public final class InteractionPacketState extends BasicPacketState {
             frame.addContext(EventContextKeys.USED_ITEM, usedSnapshot);
             frame.addContext(EventContextKeys.BLOCK_HIT, targetBlock);
             final boolean hasBlocks = !phaseContext.getCapturedBlockSupplier().isEmpty();
-            final List<BlockSnapshot> capturedBlcoks = phaseContext.getCapturedBlocks();
+            final List<SpongeBlockSnapshot> capturedBlcoks = phaseContext.getCapturedBlocks();
             final @Nullable BlockSnapshot firstBlockChange = hasBlocks ? capturedBlcoks.get(0) : null;
             if (hasBlocks) {
                 if (!TrackingUtil.processBlockCaptures(capturedBlcoks, this, phaseContext)) {

@@ -758,7 +758,7 @@ public final class PhaseTracker {
                 // properly handled since bulk captures technically should be disabled if reaching
                 // this point.
                 final SpongeBlockSnapshot originalBlockSnapshot= mixinWorld.createSpongeBlockSnapshot(currentState, currentState, pos, flag);
-                final List<BlockSnapshot> capturedSnapshots = new ArrayList<>(1); // only need tone
+                final List<SpongeBlockSnapshot> capturedSnapshots = new ArrayList<>(1); // only need tone
                 final Block newBlock = newState.getBlock();
 
                 TrackingUtil.associateBlockChangeWithSnapshot(phaseState, newBlock, currentState, originalBlockSnapshot, capturedSnapshots);

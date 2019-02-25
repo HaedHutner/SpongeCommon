@@ -122,4 +122,8 @@ public abstract class CapturedSupplier<T> implements Supplier<List<T>>, ICapture
                 .add("Captured", this.captured == null ? 0 : this.captured.size())
                 .toString();
     }
+
+    public int size() {
+        return this.captured == null ? 0 : this.captured.size();
+    }
 }

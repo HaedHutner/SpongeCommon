@@ -30,6 +30,7 @@ import net.minecraft.world.WorldServer;
 import org.spongepowered.api.block.BlockSnapshot;
 import org.spongepowered.api.data.Transaction;
 import org.spongepowered.api.entity.Entity;
+import org.spongepowered.common.block.SpongeBlockSnapshot;
 import org.spongepowered.common.entity.PlayerTracker;
 import org.spongepowered.common.event.SpongeCommonEventFactory;
 import org.spongepowered.common.event.tracking.IPhaseState;
@@ -49,7 +50,7 @@ public final class PostState extends GeneralState<UnwindingPhaseContext> {
 
     @SuppressWarnings("unchecked")
     private static void postBlockAddedSpawns(UnwindingPhaseContext postContext, IPhaseState<?> unwindingState, PhaseContext<?> unwindingPhaseContext,
-        CapturedSupplier<BlockSnapshot> capturedBlockSupplier, int depth) {
+        CapturedSupplier<SpongeBlockSnapshot> capturedBlockSupplier, int depth) {
         if (PhaseTracker.checkMaxBlockProcessingDepth(GeneralPhase.Post.UNWINDING, postContext, depth)) {
             return;
         }
@@ -59,7 +60,7 @@ public final class PostState extends GeneralState<UnwindingPhaseContext> {
             ((IPhaseState) unwindingState).postProcessSpawns(unwindingPhaseContext, capturedEntities);
         });
         capturedBlockSupplier.acceptAndClearIfNotEmpty(blocks -> {
-            final List<BlockSnapshot> blockSnapshots = new ArrayList<>(blocks);
+            final List<SpongeBlockSnapshot> blockSnapshots = new ArrayList<>(blocks);
             TrackingUtil.processBlockCaptures(blockSnapshots, GeneralPhase.Post.UNWINDING, postContext, depth);
         });
     }
@@ -161,14 +162,14 @@ public final class PostState extends GeneralState<UnwindingPhaseContext> {
      */
     @SuppressWarnings("unchecked")
     private void postDispatch(IPhaseState<?> unwindingState, PhaseContext<?> unwindingContext, UnwindingPhaseContext postContext) {
-        final List<BlockSnapshot> contextBlocks = postContext.getCapturedBlocksOrEmptyList();
+        final List<SpongeBlockSnapshot> contextBlocks = postContext.getCapturedBlocksOrEmptyList();
         final List<Entity> contextEntities = postContext.getCapturedEntitiesOrEmptyList();
         final List<Entity> contextItems = (List<Entity>) (List<?>) postContext.getCapturedItemsOrEmptyList();
         if (contextBlocks.isEmpty() && contextEntities.isEmpty() && contextItems.isEmpty()) {
             return;
         }
         if (!contextBlocks.isEmpty()) {
-            final List<BlockSnapshot> blockSnapshots = new ArrayList<>(contextBlocks);
+            final List<SpongeBlockSnapshot> blockSnapshots = new ArrayList<>(contextBlocks);
             contextBlocks.clear();
             TrackingUtil.processBlockCaptures(blockSnapshots, this, postContext);
         }
@@ -206,9 +207,9 @@ public final class PostState extends GeneralState<UnwindingPhaseContext> {
             return;
         }
         context.setBulkBlockCaptures(false);
-        final CapturedSupplier<BlockSnapshot> capturedBlockSupplier = context.getCapturedBlockSupplier();
+        final CapturedSupplier<SpongeBlockSnapshot> capturedBlockSupplier = context.getCapturedBlockSupplier();
         capturedBlockSupplier.acceptAndClearIfNotEmpty(blocks -> {
-            final List<BlockSnapshot> blockSnapshots = new ArrayList<>(blocks);
+            final List<SpongeBlockSnapshot> blockSnapshots = new ArrayList<>(blocks);
             blocks.clear();
             TrackingUtil.processBlockCaptures(blockSnapshots, this, context, depth);
         });
@@ -232,7 +233,7 @@ public final class PostState extends GeneralState<UnwindingPhaseContext> {
 
     /**
      * Specifically overridden to delegate to the unwinding state. Since the block physics processing is all handled in
-     * {@link TrackingUtil#performBlockAdditions(List, IPhaseState, PhaseContext, boolean, int)}.
+     * {@link TrackingUtil#processBlockCaptures(List, IPhaseState, PhaseContext, int)}.
      *
      * @param blockChange change
      * @param snapshotTransaction the transaction

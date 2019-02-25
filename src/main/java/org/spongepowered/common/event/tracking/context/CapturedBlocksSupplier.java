@@ -24,9 +24,9 @@
  */
 package org.spongepowered.common.event.tracking.context;
 
-import org.spongepowered.api.block.BlockSnapshot;
+import org.spongepowered.common.block.SpongeBlockSnapshot;
 
-public final class CapturedBlocksSupplier extends CapturedSupplier<BlockSnapshot> {
+public final class CapturedBlocksSupplier extends CapturedSupplier<SpongeBlockSnapshot> {
 
     public CapturedBlocksSupplier() {
     }

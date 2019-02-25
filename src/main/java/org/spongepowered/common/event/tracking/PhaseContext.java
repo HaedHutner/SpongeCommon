@@ -41,6 +41,7 @@ import org.spongepowered.api.event.cause.EventContextKeys;
 import org.spongepowered.asm.util.PrettyPrinter;
 import org.spongepowered.common.SpongeImpl;
 import org.spongepowered.common.SpongeImplHooks;
+import org.spongepowered.common.block.SpongeBlockSnapshot;
 import org.spongepowered.common.entity.EntityUtil;
 import org.spongepowered.common.event.tracking.context.BlockItemDropsSupplier;
 import org.spongepowered.common.event.tracking.context.BlockItemEntityDropsSupplier;
@@ -414,14 +415,14 @@ public class PhaseContext<P extends PhaseContext<P>> implements AutoCloseable {
         return this.capturedItemsSupplier;
     }
 
-    public List<BlockSnapshot> getCapturedBlocks() throws IllegalStateException {
+    public List<SpongeBlockSnapshot> getCapturedBlocks() throws IllegalStateException {
         if (this.blocksSupplier == null) {
             throw TrackingUtil.throwWithContext("Expected to be capturing blocks, but we're not capturing them!", this).get();
         }
         return this.blocksSupplier.get();
     }
 
-    public CapturedSupplier<BlockSnapshot> getCapturedBlockSupplier() throws IllegalStateException {
+    public CapturedSupplier<SpongeBlockSnapshot> getCapturedBlockSupplier() throws IllegalStateException {
         if (this.blocksSupplier == null) {
             throw TrackingUtil.throwWithContext("Expected to be capturing blocks, but we're not capturing them!", this).get();
         }
@@ -593,7 +594,7 @@ public class PhaseContext<P extends PhaseContext<P>> implements AutoCloseable {
     }
 
 
-    public List<BlockSnapshot> getCapturedBlocksOrEmptyList() {
+    public List<SpongeBlockSnapshot> getCapturedBlocksOrEmptyList() {
         return this.blocksSupplier != null ? this.blocksSupplier.orEmptyList() : Collections.emptyList();
     }
 

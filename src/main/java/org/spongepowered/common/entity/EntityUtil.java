@@ -99,6 +99,7 @@ import org.spongepowered.api.world.gamerule.DefaultGameRules;
 import org.spongepowered.api.world.storage.WorldProperties;
 import org.spongepowered.common.SpongeImpl;
 import org.spongepowered.common.SpongeImplHooks;
+import org.spongepowered.common.block.SpongeBlockSnapshot;
 import org.spongepowered.common.event.tracking.IPhaseState;
 import org.spongepowered.common.event.tracking.PhaseContext;
 import org.spongepowered.common.event.tracking.PhaseData;
@@ -446,7 +447,7 @@ public final class EntityUtil {
             final MoveEntityEvent.Teleport.Portal event = SpongeEventFactory.createMoveEntityEventTeleportPortal(frame.getCurrentCause(), fromTransform, portalExitTransform, VirtualPortalAgent.workaround(teleporter), mixinEntity, true);
             SpongeImpl.postEvent(event);
             final Vector3i chunkPosition = mixinEntity.getLocation().getChunkPosition();
-            final List<BlockSnapshot> capturedBlocks = context.getCapturedBlocks();
+            final List<SpongeBlockSnapshot> capturedBlocks = context.getCapturedBlocks();
             final Transform<World> toTransform = event.getToTransform();
 
             if (event.isCancelled()) {

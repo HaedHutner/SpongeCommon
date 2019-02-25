@@ -45,6 +45,7 @@ import org.spongepowered.api.event.CauseStackManager;
 import org.spongepowered.api.event.cause.EventContextKeys;
 import org.spongepowered.api.event.cause.entity.damage.source.DamageSource;
 import org.spongepowered.api.event.cause.entity.spawn.SpawnTypes;
+import org.spongepowered.common.block.SpongeBlockSnapshot;
 import org.spongepowered.common.entity.EntityUtil;
 import org.spongepowered.common.event.SpongeCommonEventFactory;
 import org.spongepowered.common.event.tracking.TrackingUtil;
@@ -170,7 +171,7 @@ class EntityTickPhaseState extends TickPhaseState<EntityTickContext> {
         // Would depend on whether entity captures are done.
         phaseContext.getBlockItemDropSupplier()
             .acceptAndClearIfNotEmpty(map -> {
-                final List<BlockSnapshot> capturedBlocks = phaseContext.getCapturedBlocks();
+                final List<SpongeBlockSnapshot> capturedBlocks = phaseContext.getCapturedBlocks();
                 for (BlockSnapshot snapshot : capturedBlocks) {
                     final BlockPos blockPos = VecHelper.toBlockPos(snapshot.getLocation().get());
                     final Collection<EntityItem> entityItems = map.get(blockPos);
